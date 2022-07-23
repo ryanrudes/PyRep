@@ -381,13 +381,22 @@ class Arm(RobotComponent):
                 max_configs, distance_threshold, max_time_ms, relative_to)
         except ConfigurationError as e:
             raise ConfigurationPathError('Could not create path.') from e
-
         _, ret_floats, _, _ = utils.script_call(
             'getNonlinearPath@PyRep', PYREP_SCRIPT_TYPE,
             ints=[self._collision_collection, int(ignore_collisions),
                   trials_per_goal] + handles,
             floats=configs.flatten().tolist(),
             strings=[algorithm.value])
+        """
+        ret_floats = np.array(ret_floats)
+        ret_floats = ret_floats.reshape(-1, 7)
+        noise = np.random.normal(size = ret_floats.shape)
+        noise = noise / np.linalg.norm(noise, axis = 0)
+        noise = noise * np.linalg.norm(ret_floats, axis = 0)
+        noise = noise * 0.0001
+        ret_floats += noise
+        ret_floats = ret_floats.flatten()
+        """
 
         if len(ret_floats) == 0:
             raise ConfigurationPathError('Could not create path.')
@@ -432,6 +441,7 @@ class Arm(RobotComponent):
             can be created.
         :return: A linear or non-linear path in the arm configuration space.
         """
+        """
         try:
             p = self.get_linear_path(position, euler, quaternion,
                                      ignore_collisions=ignore_collisions,
@@ -439,6 +449,7 @@ class Arm(RobotComponent):
             return p
         except ConfigurationPathError:
             pass  # Allowed. Try again, but with non-linear.
+        """
 
         # This time if an exception is thrown, we dont want to catch it.
         p = self.get_nonlinear_path(
